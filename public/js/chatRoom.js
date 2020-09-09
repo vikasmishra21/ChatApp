@@ -1,12 +1,41 @@
 let socket = io()
 
+function scrollToBottom() {
+    let messages = document.querySelector('#messages').lastElementChild
+    messages.scrollIntoView()
+}
+
 socket.on('connect', () => {
-console.log('Connected to server');
+    let searchQuery = window.location.search.substring(1);
+    let params = JSON.parse('{"' + decodeURI(searchQuery).replace(/&/g, '","').replace(/\+/g, ' ').replace(/=/g,'":"') + '"}');
+  
+    socket.emit('join', params, function(err) {
+      if(err){
+        alert(err);
+        window.location.href = '/';
+      }else {
+        console.log('No Error');
+      }
+    })
 });
 
 socket.on('disconnect', () => {
 console.log('Disconnected from server');
 });
+
+socket.on('updateUsersList', function (users) {
+    let ol = document.createElement('ol');
+  
+    users.forEach(function (user) {
+      let li = document.createElement('li');
+      li.innerHTML = user;
+      ol.appendChild(li);
+    });
+  
+    let usersList = document.querySelector('#users');
+    usersList.innerHTML = "";
+    usersList.appendChild(ol);
+  })
 
 socket.on('newMessage', (message) => {
     const formattedTime = moment(message.createdAt).format('LT')
@@ -24,6 +53,7 @@ socket.on('newMessage', (message) => {
     const div = document.createElement('div')
     div.innerHTML = html
     document.querySelector('#messages').appendChild(div)
+    scrollToBottom()
 })
 
 socket.on('newLocationMessage', (message) => {
@@ -47,6 +77,7 @@ socket.on('newLocationMessage', (message) => {
     // a.innerText = 'My current location'
     // li.appendChild(a)
     // document.querySelector('body').appendChild(li)
+    scrollToBottom()
 })
 
 // socket.emit('createMessage', {
@@ -62,8 +93,8 @@ document.querySelector('#submit-btn').addEventListener('click', (e) => {
     socket.emit('createMessage', {
         from: "User",
         text: document.querySelector('input[name="message"]').value
-    }, (msg) => {
-
+    }, () => {
+        document.querySelector('input[name="message"]').value = ''
     })
 })
 
